@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крестики-нолики</title>
+    <style>
+                body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f39c12, #8e44ad);
+            color: #fff;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 120px);
+            grid-template-rows: repeat(3, 120px);
+            gap: 10px;
+        }
+
+        .cell {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(145deg, #2c3e50, #34495e);
+            border-radius: 10px;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+        }
+
+        .cell.taken {
+            cursor: not-allowed;
+            background: linear-gradient(145deg, #7f8c8d, #95a5a6);
+        }
+
+        .cell:hover {
+            transform: scale(1.1);
+            background: linear-gradient(145deg, #1abc9c, #16a085);
+        }
+
+        .scoreboard {
+            margin: 20px 0;
+            font-size: 1.8rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #confettiContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+            overflow: hidden;
+            display: none;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 20px;
+            background-color: randomColor();
+            opacity: 0.9;
+            animation: fall 3s linear infinite;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .message {
+            margin: 20px 0;
+            font-size: 2rem;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .reset-button {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background: linear-gradient(145deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .reset-button:hover {
+            background: linear-gradient(145deg, #2ecc71, #27ae60);
+            transform: scale(1.1);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="scoreboard">
+        Игрок X: <span id="scoreX">0</span> | Игрок O: <span id="scoreO">0</span>
+    </div>
+    <div class="board" id="board"></div>
+    <div class="message" id="winnerMessage"></div>
+    <button class="reset-button" id="resetButton">Начать заново</button>
+    <br>
+    <button class="reset-button" id="resetScoreButton">Сбросить счёт</button>
+    <div id="confettiContainer"></div>
+    <script>
+        const boardElement = document.getElementById('board');
+        const confettiContainer = document.getElementById('confettiContainer');
+        const scoreX = document.getElementById('scoreX');
+        const scoreO = document.getElementById('scoreO');
+        const winnerMessage = document.getElementById('winnerMessage');
+        const resetButton = document.getElementById('resetButton');
+        const resetScoreButton = document.getElementById('resetScoreButton');
+
+        let board = Array(9).fill(null);
+        let currentPlayer = 'X';
+        let scores = { X: 0, O: 0 };
+
+        function createBoard() {
+            boardElement.innerHTML = '';
+            board.forEach((_, index) => {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = index;
+                cell.addEventListener('click', handleCellClick);
+                boardElement.appendChild(cell);
+            });
+        }
+
+        function handleCellClick(event) {
+            const index = event.target.dataset.index;
+
+            if (board[index] !== null) return;
+
+            board[index] = currentPlayer;
+            event.target.textContent = currentPlayer;
+            event.target.classList.add('taken');
+
+            if (checkWinner()) {
+                scores[currentPlayer]++;
+                updateScoreboard();
+                showWinnerMessage(`${currentPlayer} победил! 🎉`);
+                createConfetti();
+                return;
+            }
+
+            if (board.every(cell => cell !== null)) {
+                showWinnerMessage('Ничья! 🤝');
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        }
+
+        function checkWinner() {
+            const winningCombinations = [
+                [0, 1, 2],
+                [3, 4, 5],
+                [6, 7, 8],
+                [0, 3, 6],
+                [1, 4, 7],
+                [2, 5, 8],
+                [0, 4, 8],
+                [2, 4, 6],
+            ];
+
+            return winningCombinations.some(combination => {
+                const [a, b, c] = combination;
+                return board[a] !== null && board[a] === board[b] && board[a] === board[c];
+            });
+        }
+
+        function updateScoreboard() {
+            scoreX.textContent = scores.X;
+            scoreO.textContent = scores.O;
+        }
+
+        function resetGame() {
+            board = Array(9).fill(null);
+            currentPlayer = 'X';
+            winnerMessage.textContent = '';
+            confettiContainer.style.display = 'none';
+            createBoard();
+        }
+
+        function createConfetti() {
+            confettiContainer.innerHTML = '';
+            confettiContainer.style.display = 'block';
+
+            for (let i = 0; i < 100; i++) {
+                const piece = document.createElement('div');
+                piece.classList.add('confetti-piece');
+                piece.style.left = `${Math.random() * 100}%`;
+                piece.style.animationDuration = `${Math.random() * 2 + 1}s`;
+                piece.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confettiContainer.appendChild(piece);
+            }
+
+            setTimeout(() => {
+                confettiContainer.style.display = 'none';
+            }, 3000);
+        }
+
+        function showWinnerMessage(message) {
+            winnerMessage.textContent = message;
+        }
+
+        // Функция сброса счёта
+        function resetScore() {
+            scores = { X: 0, O: 0 };
+            updateScoreboard();
+        }
+
+        resetButton.addEventListener('click', resetGame);
+        resetScoreButton.addEventListener('click', resetScore);
+
+        createBoard();
+    </script>
+</body>
+</html>
